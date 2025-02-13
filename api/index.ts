@@ -21,7 +21,7 @@ app.post("/chat", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: message }],
       temperature: 0.7,
       stream: true,
