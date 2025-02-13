@@ -1,13 +1,14 @@
-local request = http.get("https://example.tweaked.cc")
-print(request.readAll())
-
-request.close()
-
--- Make POST request to chat endpoint
 local function streamResponse(message)
+    -- Convert message to JSON format
+    local jsonData = textutils.serializeJSON({
+        message = message
+    })
+
+    -- Make POST request with proper headers
     local response = http.post(
         "https://cc-gpt-beta.vercel.app/chat",
-        textutils.serializeJSON({ message = message })
+        jsonData,
+        {["Content-Type"] = "application/json"}
     )
     
     if not response then
@@ -36,4 +37,5 @@ local function streamResponse(message)
     response.close()
 end
 
-streamResponse("hello chatgpt")
+-- Test the function
+streamResponse("Hello, how are you?")
