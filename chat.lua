@@ -1,5 +1,6 @@
--- Simple chat client that connects to local Node.js server with streaming support
-local SERVER_URL = "https://cc-gpt-beta.vercel.app//chat"
+-- Simple chat client that connects to Node.js server with streaming support
+local SERVER_URL = "https://cc-gpt-beta.vercel.app/chat"
+local https = require("api") -- Import our new HTTPS API
 
 -- Function to wrap text and print at current position
 local function printWrapped(text, startX, startY)
@@ -20,7 +21,6 @@ local function printWrapped(text, startX, startY)
             term.setCursorPos(currentX, currentY)
         end
         
-        -- Print word and update position
         term.write(word)
         currentX = currentX + #word
     end
@@ -30,50 +30,54 @@ end
 
 -- Function to send message to server and handle streaming response
 local function getStreamingResponse(message)
-    local postData = textutils.serialiseJSON({
-        message = message
-    })
+    -- Setup request data
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["Accept"] = "text/event-stream",
+        ["User-Agent"] = "ComputerCraft/1.0"
+    }
 
-    local response = http.post(
-        SERVER_URL,
-        postData,
-        {["Content-Type"] = "application/json"}
-    )
+    -- Make the HTTP request using our new API
+    local response = https.postJSON(SERVER_URL, {
+        message = message
+    }, headers)
 
     if not response then
-        return "Error: Failed to connect to server"
+        print("Error: Failed to connect to server")
+        return
     end
 
-    -- Get starting position for response
+    -- Setup response display
     local currentX, currentY = term.getCursorPos()
     term.setCursorPos(1, currentY)
     term.write("Bot: ")
     currentX, currentY = term.getCursorPos()
 
-    -- Buffer to store complete words
+    -- Process the streaming response
     local wordBuffer = ""
     
-    -- Read the stream line by line
     while true do
         local line = response.readLine()
         if not line then break end
 
+        -- Handle SSE data
         if line:match("^data: ") then
-            local data = line:sub(6)
+            local data = line:sub(6) -- Remove "data: " prefix
             
+            -- Check for stream end
             if data == "[DONE]" then
-                -- Print any remaining buffered text
                 if #wordBuffer > 0 then
                     currentX, currentY = printWrapped(wordBuffer, currentX, currentY)
                 end
                 break
             end
 
-            local ok, chunk = pcall(textutils.unserializeJSON, data)
-            if ok and chunk and chunk.content then
+            -- Parse and handle chunk data
+            local success, chunk = pcall(textutils.unserializeJSON, data)
+            if success and chunk and chunk.content then
                 wordBuffer = wordBuffer .. chunk.content
                 
-                -- If we have a complete word (space or punctuation), print the buffer
+                -- Print complete words
                 if wordBuffer:match("[%s%p]$") then
                     currentX, currentY = printWrapped(wordBuffer, currentX, currentY)
                     wordBuffer = ""
@@ -83,7 +87,7 @@ local function getStreamingResponse(message)
     end
 
     response.close()
-    print() -- New line after response is complete
+    print() -- New line after response
 end
 
 -- Main program
@@ -93,6 +97,13 @@ print("ChatBot Started!")
 print("Type your messages and press Enter")
 print("Type 'exit' to quit")
 print("------------------------")
+
+-- Enable HTTP if not already enabled
+if not https.get(SERVER_URL) then
+    print("Warning: HTTPS must be enabled for this program")
+    print("Run 'set http.strict_ssl false' in the shell")
+    return
+end
 
 -- Main loop
 while true do
