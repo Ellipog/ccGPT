@@ -14,18 +14,8 @@ const openai = new OpenAI({
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
-    const userAgent = req.headers["user-agent"] || "";
-
-    // If it's a ComputerCraft client, don't use streaming
-    if (userAgent.includes("ComputerCraft")) {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: message }],
-        temperature: 0.7,
-        stream: false,
-      });
-
-      return res.json({ content: completion.choices[0].message.content });
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
     }
 
     // Set headers for streaming
@@ -34,24 +24,32 @@ app.post("/chat", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini-2024-07-18",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: message }],
       temperature: 0.7,
       stream: true,
     });
 
+    // Stream the response
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || "";
       if (content) {
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        // Send the chunk in a format that's easy to parse in Lua
+        res.write(content);
       }
     }
 
-    res.write("data: [DONE]\n\n");
+    // Signal the end of the stream
+    res.write("\n[DONE]");
     res.end();
   } catch (error) {
     console.error("Error:", error);
-    res.status(500).json({ error: "Failed to get response" });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to get response" });
+    } else {
+      res.write("\n[ERROR] " + error.message);
+      res.end();
+    }
   }
 });
 
