@@ -3,8 +3,28 @@ print(request.readAll())
 
 request.close()
 
-local response = http.post("https://cc-gpt-beta.vercel.app/chat", "hello chatgpt")
-print(response.readAll())
+local headers = {
+    ["Content-Type"] = "application/json",
+    ["User-Agent"] = "ComputerCraft"
+}
 
-response.close()
+local message = {
+    message = "hello chatgpt"
+}
+
+local response = http.post(
+    "https://cc-gpt-beta.vercel.app/chat",
+    textutils.serializeJSON(message),
+    headers
+)
+
+if response then
+    local content = response.readAll()
+    response.close()
+    
+    local data = textutils.unserializeJSON(content)
+    print(data.content)
+else
+    print("Failed to connect to server")
+end
 

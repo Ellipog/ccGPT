@@ -14,6 +14,19 @@ const openai = new OpenAI({
 app.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
+    const userAgent = req.headers["user-agent"] || "";
+
+    // If it's a ComputerCraft client, don't use streaming
+    if (userAgent.includes("ComputerCraft")) {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: message }],
+        temperature: 0.7,
+        stream: false,
+      });
+
+      return res.json({ content: completion.choices[0].message.content });
+    }
 
     // Set headers for streaming
     res.setHeader("Content-Type", "text/event-stream");
