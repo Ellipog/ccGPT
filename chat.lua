@@ -1,5 +1,5 @@
 -- Simple chat client that connects to local Node.js server with streaming support
-local SERVER_URL = "http://localhost:3000/chat"
+local SERVER_URL = "https://cc-gpt-beta.vercel.app//chat"
 
 -- Function to wrap text and print at current position
 local function printWrapped(text, startX, startY)
