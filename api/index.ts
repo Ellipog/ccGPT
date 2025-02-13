@@ -13,7 +13,7 @@ const openai = new OpenAI({
 
 app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const message = req.headers["x-message"] || "";
 
     // Set headers for streaming
     res.setHeader("Content-Type", "text/event-stream");
@@ -21,8 +21,8 @@ app.post("/chat", async (req, res) => {
     res.setHeader("Connection", "keep-alive");
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: message }],
+      model: "gpt-4o-mini-2024-07-18",
+      messages: [{ role: "user", content: message.toString() }],
       temperature: 0.7,
       stream: true,
     });
