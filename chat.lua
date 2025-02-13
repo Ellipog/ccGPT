@@ -1,15 +1,16 @@
-local function streamResponse(message)
-    -- Convert message to JSON format
-    local jsonData = textutils.serializeJSON({
-        message = message
-    })
+local request = http.get("https://example.tweaked.cc")
+print(request.readAll())
 
-    -- Make POST request with proper headers
+request.close()
+
+-- Make POST request to chat endpoint
+local function streamResponse(message)
     local response = http.post(
         "https://cc-gpt-beta.vercel.app/chat",
-        jsonData,
-        {["Content-Type"] = "application/json"}
+        "hei katt gpt"
     )
+    
+    print(repsonse)
     
     if not response then
         error("Failed to connect to server")
@@ -37,5 +38,4 @@ local function streamResponse(message)
     response.close()
 end
 
--- Test the function
-streamResponse("Hello, how are you?")
+streamResponse("hello chatgpt")
