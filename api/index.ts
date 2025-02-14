@@ -13,43 +13,42 @@ const openai = new OpenAI({
 
 app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: "Message is required" });
-    }
-
+    const message = req.headers["x-message"];
+    const role = req.headers["x-role"];
     // Set headers for streaming
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
 
+    console.log(message);
+
+    const content = role + message;
+
     const stream = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: message }],
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "user",
+          content: content,
+        },
+      ],
       temperature: 0.7,
       stream: true,
     });
 
-    // Stream the response
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || "";
       if (content) {
-        // Send the chunk in a format that's easy to parse in Lua
-        res.write(content);
+        console.log(content);
+        res.write(`data: ${JSON.stringify({ content })}\n\n`);
       }
     }
 
-    // Signal the end of the stream
-    res.write("\n[DONE]");
+    res.write("data: [DONE]\n\n");
     res.end();
   } catch (error) {
     console.error("Error:", error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to get response" });
-    } else {
-      res.write("\n[ERROR] " + error.message);
-      res.end();
-    }
+    res.status(500).json({ error: "Failed to get response" });
   }
 });
 
